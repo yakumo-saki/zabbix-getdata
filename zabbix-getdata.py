@@ -101,6 +101,6 @@ if __name__ == "__main__":
 
     print(args.configname)
 
-    config = get_config('config_sample.yaml')
+    config = get_config('config.yaml')
     pprint(config["configs"][args.configname])
     main(args.configname)
