@@ -1,0 +1,28 @@
+zabbix:
+  host: 'http://10.1.0.10/zabbix'
+  user: Admin
+  password: zabbix
+configs:
+  denki:
+    output: json
+    output_path: "/tmp/denki.json"
+    values:
+      - key: "delta"
+        zabbix_host: 'ENVIRONMENT'
+        zabbix_key: 'denki.delta'
+      - key: "now_total_amp"
+        zabbix_host: 'ENVIRONMENT'
+        zabbix_key: 'denki.now_total_amp'
+      - key: "now_w"
+        zabbix_host: 'ENVIRONMENT'
+        zabbix_key: 'denki.now_w'
+  environment:
+    output: json
+    output_path: "/tmp/environment.json"
+    values:
+    - key: "temp"
+      zabbix_host: 'ENVIRONMENT'
+      zabbix_key: 'outside.temparature'
+    - key: "humi"
+      zabbix_host: 'ENVIRONMENT'
+      zabbix_key: 'outside.humidity'
