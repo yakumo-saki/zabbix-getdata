@@ -54,8 +54,10 @@ def write_output(output, path, type):
         with open(path, 'w') as json_file:
             logger.debug(json.dumps(output))
             json_file.write(json.dumps(output))
-    if type.upper == "LTSV":
+    elif type.upper == "LTSV":
         raise NotImplementedError()
+    else:
+        raise NotImplementedError("unknown output type " + type)
 
 def get_hostid(zapi, hostname):
     for h in zapi.host.get(output=["hostid", "host", "unit"], filter={"name": hostname}):
