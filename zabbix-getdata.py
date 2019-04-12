@@ -3,14 +3,19 @@ import time
 from pyzabbix import ZabbixAPI
 from pprint import pprint
 
+from logging import getLogger, basicConfig, StreamHandler, Formatter, DEBUG, INFO, WARN
+basicConfig(level=INFO)
+
+logger = getLogger(__name__)
+logger.setLevel(DEBUG)
+
 config = None
 
 def init_zabbix_api():
-    # ZabbixサーバーのFQDN。パス(/zabbix/api_jsonrpc.php)は不要
     zapi = ZabbixAPI(config["zabbix"]["host"])
     zapi.login(config["zabbix"]["user"], config["zabbix"]["password"])
 
-    print("Connected to Zabbix API Version %s" % zapi.api_version())
+    logger.info("Connected zabbix successfully. API version %s" % zapi.api_version())
     return zapi
 
 def main(name):
@@ -21,61 +26,68 @@ def main(name):
 
     output = {}
     for cfg in config["configs"][name]["values"]:
-        pprint(cfg)
+        # logger.debug(cfg)
 
         hostid = get_hostid(zapi, cfg["zabbix_host"])
-        print(hostid)
+        logger.debug("host " + cfg["zabbix_host"] + " is hostid " + str(hostid))
         if (hostid == None): raise RuntimeError('host not found =>' + str(cfg))
 
-        print(cfg["zabbix_key"])
-        itemid = get_itemid(zapi, hostid, cfg["zabbix_key"])
+        item = get_item(zapi, hostid, cfg["zabbix_key"])
+        if (item == None):
+            raise RuntimeError('item not found on host =>' + str(cfg))
+        elif (item["lastvalue"] == None):
+            raise RuntimeError('lastvalue not exist =>' + str(cfg))
 
-        if (itemid == None): raise RuntimeError('item not found on host =>' + str(cfg))
+        output[cfg["key"]] = item["lastvalue"]
 
-        lastval = get_latest_value(zapi, itemid)
-        if (lastval == None): raise RuntimeError('item has no value =>' + str(cfg))
+        # lastval = get_latest_value(zapi, itemid)
+        # if (lastval == None): raise RuntimeError('item has no value =>' + str(cfg))
+        #output[cfg["key"]] = lastval["value"]
 
-        output[cfg["key"]] = lastval["value"]
-
-    write_output(output, myconfig["output_path"], myconfig["output_type"])
+    write_output(output, myconfig["output_path"], myconfig["output"])
+    logger.info("output done => " + myconfig["output_path"])
 
 
 def write_output(output, path, type):
-    import json
-    with open(path, 'w') as json_file:
-        json_file.write(json.dumps(output))
-
+    if type.upper == "JSON":
+        import json
+        with open(path, 'w') as json_file:
+            logger.debug(json.dumps(output))
+            json_file.write(json.dumps(output))
+    if type.upper == "LTSV":
+        raise NotImplementedError()
 
 def get_hostid(zapi, hostname):
-    for h in zapi.host.get(output=["hostid", "host", "unit"]):
-        #pprint(h)
-        if h["host"] == "ENVIRONMENT":
+    for h in zapi.host.get(output=["hostid", "host", "unit"], filter={"name": hostname}):
+        #plogger.debug(h)
+        if h["host"] == hostname:
             return h["hostid"]
 
     return None
 
 
-def get_itemid(zapi, hostid, itemkey):
-    for itm in zapi.item.get(hostids=hostid,output=["itemid", "name", "key_", "units"],
+def get_item(zapi, hostid, itemkey):
+    for itm in zapi.item.get(hostids=hostid,output=["itemid", "name", "key_", "units", "lastvalue"],
                              search={"key_":itemkey}):
         #
         if itm["units"][0] == "!":
             itm["units"] = itm["units"][1:]
-        print(itm)
 
-        return itm["itemid"]
+        return itm
 
     return None
 
 
+# item.get APIで lastvalueが取れるのを知らなかったので書いた。
+# もう使わない
 def get_latest_value(zapi, itemid):
     for lastval in zapi.history.get(
         itemids=itemid,
         sortfield="clock",
         sortorder="DESC",
-        limit=1
+        limit=10
         ):
-        print(lastval)
+        logger.debug(lastval)
         return lastval
 
     return None
@@ -99,8 +111,5 @@ if __name__ == "__main__":
                         help='section name to use (config.yaml)')
     args = parser.parse_args()
 
-    print(args.configname)
-
     config = get_config('config.yaml')
-    pprint(config["configs"][args.configname])
     main(args.configname)
