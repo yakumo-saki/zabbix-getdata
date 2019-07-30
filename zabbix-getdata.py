@@ -38,8 +38,11 @@ def main(name):
         item = get_item(zapi, hostid, cfg["zabbix_key"])
         if (item == None):
             raise RuntimeError('item not found on host =>' + str(cfg))
-        elif (item["lastvalue"] == None):
-            raise RuntimeError('lastvalue not exist =>' + str(cfg))
+        else:
+            logger.debug("item " + item["name"] + "(" + item["key_"] + ") is id " + str(item["itemid"]))
+
+            if (item["lastvalue"] == None):
+                raise RuntimeError('lastvalue not exist =>' + str(cfg))
 
         output[cfg["key"]] = item["lastvalue"]
 
