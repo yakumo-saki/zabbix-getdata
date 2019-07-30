@@ -78,6 +78,10 @@ def get_item(zapi, hostid, itemkey):
     logger.debug("get_item key => host " + str(hostid) + " itemkey " + itemkey )
     for itm in zapi.item.get(hostids=hostid,output=["itemid", "name", "key_", "units", "lastvalue"],
                              search={"key_":itemkey}):
+        # keyが似たものが取得できてしまう？
+        if itm["key_"] != itemkey:
+            logger.debug("not wanted " + itm["key_"])
+            continue
         # K M G に丸めるのを防止する為の ! が単位の先頭にある場合削除
         if itm["units"][0] == "!":
             itm["units"] = itm["units"][1:]
