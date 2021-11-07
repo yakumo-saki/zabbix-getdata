@@ -1,3 +1,7 @@
+# deprecated
+
+Use https://github.com/yakumo-saki/zabbix-getter instead
+
 # zabbix-getdata
 
 Get latest data from zabbix
